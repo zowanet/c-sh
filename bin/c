@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+if [ "${BASH_VERSINFO[0]}" -lt 5 ]; then
+	>& 2 printf 'You are running an old version of Bash: %s\nConsider upgrading to version 5 or later\n' "$(tput rev)$BASH_VERSION$(tput sgr0)"
+fi
+set -o errexit
+set -o noclobber
+set -o nounset
+set -o pipefail
+
+function c() {
+	declare -rix EXIT_FAILURE=1
+	declare -rix EXIT_SUCCESS=0
+	declare -ix return_value=$EXIT_FAILURE
+	if [ $# -ne 1 ] || [ -z "$1" ]; then
+		>& 2 printf 'Usage: %s SYMBOL\n' "$(basename "${BASH_SOURCE[0]}")"
+	else
+		declare -ar stdlib=( \
+			assert
+			complex
+			ctype
+			errno
+			fenv
+			float
+			inttypes
+			iso646
+			limits
+			locale
+			math
+			setjmp
+			signal
+			stdalign
+			stdarg
+			stdatomic
+			stdbool
+			stddef
+			stdint
+			stdio
+			stdlib
+			stdnoreturn
+			string
+			tgmath
+			threads
+			time
+			uchar
+			wchar
+			wctype
+		)
+		declare -ar posix=( \
+			aio
+			arpa/inet
+			cpio
+			dirent
+			dlfcn
+			fcntl
+			fmtmsg
+			fnctl
+			fnmatch
+			ftw
+			glob
+			grp
+			iconv
+			langinfo
+			libgen
+			monetary
+			mqueue
+			ndbm
+			net/if
+			netdb
+			netinet/in
+			netinet/tcp
+			nl_types
+			poll
+			pthread
+			pwd
+			regex
+			sched
+			search
+			semaphore
+			spawn
+			strings
+			stropts
+			sys/ipc
+			sys/mman
+			sys/msg
+			sys/resource
+			sys/select
+			sys/sem
+			sys/shm
+			sys/socket
+			sys/stat
+			sys/statvfs
+			sys/time
+			sys/times
+			sys/types
+			sys/uio
+			sys/un
+			sys/utsname
+			sys/wait
+			syslog
+			tar
+			termios
+			trace
+			ulimit
+			unistd
+			utime
+			utmpx
+			wordexp
+		)
+		declare -ar bsd=( \
+			db
+			err
+			fts
+			sys/queue
+			sys/tree
+			vis
+		)
+		declare -r includes="$(
+			for header in "${stdlib[@]}" "${posix[@]}" "${bsd[@]}"; do
+				if [ -f "/usr/include/$header.h" ]; then
+					printf '#include <%s.h>\n' "$header"
+				fi
+			done
+		)"
+		declare -r placeholder=___placeholder___
+		printf '%s\n%s,%s' "$includes" "$placeholder" "$1" \
+		| cc -E - \
+		| grep "$placeholder," \
+		| sed "s/^$placeholder,//"
+		return_value=$EXIT_SUCCESS
+	fi
+	return $return_value
+}
+
+c "$@"
